@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#00d4aa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="./manifest.json">
+<title>Sticker Sender</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a28;--bg4:#222236;
+  --tx:#e8e8f0;--tx2:#8888a8;--tx3:#55556a;
+  --ac:#00d4aa;--ac2:#00b894;--ac3:rgba(0,212,170,.12);
+  --er:#ff4466;--er2:rgba(255,68,102,.12);
+  --wr:#ffaa00;--wr2:rgba(255,170,0,.12);
+  --ok:#00d4aa;--ok2:rgba(0,212,170,.12);
+  --rd:14px;--rd2:10px;--rd3:6px;
+  --sh:0 4px 24px rgba(0,0,0,.4);
+  --tr:all .25s cubic-bezier(.4,0,.2,1);
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);-webkit-tap-highlight-color:transparent}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* Layout */
+.app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;position:relative}
+.app-header{padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--bg3);backdrop-filter:blur(20px);background:rgba(10,10,15,.85);z-index:10}
+.app-header h1{font-size:17px;font-weight:700;letter-spacing:-.3px;flex:1}
+.app-header .status-dot{width:8px;height:8px;border-radius:50%;background:var(--er);transition:var(--tr);flex-shrink:0}
+.app-header .status-dot.online{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.header-btn{background:none;border:none;color:var(--tx2);font-size:20px;cursor:pointer;padding:6px;border-radius:var(--rd3);transition:var(--tr)}
+.header-btn:hover{color:var(--tx);background:var(--bg3)}
+
+/* Tab Navigation */
+.tab-bar{display:flex;padding:0 12px;gap:2px;border-bottom:1px solid var(--bg3);background:var(--bg)}
+.tab{flex:1;padding:12px 8px;text-align:center;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);border:none;background:none;cursor:pointer;position:relative;transition:var(--tr)}
+.tab.active{color:var(--ac)}
+.tab.active::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:2px;background:var(--ac);border-radius:2px}
+.tab svg{display:block;margin:0 auto 4px;width:20px;height:20px}
+
+/* Panels */
+.panels{flex:1;overflow:hidden;position:relative}
+.panel{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:20px;opacity:0;pointer-events:none;transform:translateY(10px);transition:opacity .3s,transform .3s}
+.panel.active{opacity:1;pointer-events:all;transform:none}
+.panel::-webkit-scrollbar{width:4px}
+.panel::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rd);padding:20px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--tx2);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title svg{width:16px;height:16px;opacity:.6}
+
+/* Form elements */
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:6px;letter-spacing:.3px}
+.field input,.field select{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--bg4);border-radius:var(--rd2);color:var(--tx);font-size:14px;font-family:inherit;transition:var(--tr);outline:none}
+.field input:focus,.field select:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac3)}
+.field input::placeholder{color:var(--tx3)}
+.field .hint{font-size:11px;color:var(--tx3);margin-top:4px}
+.field input.mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:var(--rd2);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;border:none;transition:var(--tr);width:100%}
+.btn-primary{background:var(--ac);color:var(--bg);text-shadow:0 1px 0 rgba(0,0,0,.1)}
+.btn-primary:hover{background:var(--ac2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,212,170,.25)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-outline{background:transparent;border:1px solid var(--bg4);color:var(--tx2)}
+.btn-outline:hover{border-color:var(--tx2);color:var(--tx)}
+.btn-danger{background:var(--er2);color:var(--er);border:1px solid transparent}
+.btn-danger:hover{border-color:var(--er)}
+.btn-sm{padding:8px 14px;font-size:12px}
+.btn-row{display:flex;gap:10px;margin-top:16px}
+.btn-row .btn{flex:1}
+
+/* QR Code */
+.qr-container{text-align:center;padding:20px 0}
+.qr-container img{max-width:256px;border-radius:var(--rd);border:2px solid var(--bg4);image-rendering:pixelated}
+.qr-container p{margin-top:12px;font-size:13px;color:var(--tx2)}
+
+/* Status Badge */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-ok{background:var(--ok2);color:var(--ok)}
+.badge-er{background:var(--er2);color:var(--er)}
+.badge-wr{background:var(--wr2);color:var(--wr)}
+
+/* Drop Zone */
+.dropzone{border:2px dashed var(--bg4);border-radius:var(--rd);padding:40px 20px;text-align:center;cursor:pointer;transition:var(--tr);position:relative;overflow:hidden}
+.dropzone:hover,.dropzone.dragover{border-color:var(--ac);background:var(--ac3)}
+.dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dropzone-icon{font-size:40px;margin-bottom:12px;opacity:.5}
+.dropzone-text{font-size:14px;color:var(--tx2);line-height:1.6}
+.dropzone-text strong{color:var(--tx);display:block}
+
+/* Preview */
+.preview{margin-top:16px;text-align:center;position:relative}
+.preview img,.preview canvas{max-width:200px;max-height:200px;border-radius:var(--rd2);border:2px solid var(--bg4);background:repeating-conic-gradient(var(--bg3) 0% 25%,var(--bg) 0% 50%) 0 0/16px 16px}
+.preview .preview-info{font-size:11px;color:var(--tx3);margin-top:8px;font-family:'JetBrains Mono',monospace}
+.preview .preview-clear{position:absolute;top:-8px;right:calc(50% - 108px);background:var(--er);color:#fff;border:none;width:24px;height:24px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* Contact List */
+.contact-list{max-height:300px;overflow-y:auto;border:1px solid var(--bg3);border-radius:var(--rd2);margin-top:8px}
+.contact-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--bg3);cursor:pointer;transition:var(--tr)}
+.contact-item:last-child{border-bottom:none}
+.contact-item:hover,.contact-item.selected{background:var(--ac3)}
+.contact-item.selected{border-left:3px solid var(--ac)}
+.contact-avatar{width:36px;height:36px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--ac);flex-shrink:0}
+.contact-name{font-size:14px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contact-jid{font-size:10px;color:var(--tx3);font-family:'JetBrains Mono',monospace}
+.contact-search{position:sticky;top:0;background:var(--bg2);padding:2px}
+.contact-search input{border-radius:var(--rd3) var(--rd3) 0 0}
+
+/* Toast */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-100px);padding:12px 20px;border-radius:var(--rd2);font-size:13px;font-weight:600;z-index:100;transition:transform .4s cubic-bezier(.4,0,.2,1);max-width:90%;text-align:center;box-shadow:var(--sh)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--ok);color:var(--bg)}
+.toast.er{background:var(--er);color:#fff}
+.toast.wr{background:var(--wr);color:var(--bg)}
+
+/* Loading */
+.spinner{width:20px;height:20px;border:2px solid var(--bg4);border-top-color:var(--ac);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay{position:absolute;inset:0;background:rgba(10,10,15,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:20;border-radius:var(--rd)}
+.loading-overlay p{font-size:13px;color:var(--tx2)}
+
+/* Responsive */
+@media(max-width:400px){
+  .card{padding:14px}
+  .panel{padding:14px}
+  .dropzone{padding:24px 14px}
+}
+
+/* URL input row */
+.url-row{display:flex;gap:8px;margin-top:10px}
+.url-row input{flex:1}
+.url-row .btn{width:auto;flex-shrink:0}
+
+/* Animate */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.animate-in{animation:fadeUp .4s ease-out}
+
+/* Sent feedback */
+.sent-ok{padding:30px;text-align:center}
+.sent-ok .checkmark{font-size:48px;margin-bottom:12px}
+.sent-ok p{color:var(--tx2);font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- Header -->
+  <div class="app-header">
+    <div class="status-dot" id="statusDot" title="Disconnesso"></div>
+    <h1>Sticker Sender</h1>
+    <button class="header-btn" onclick="refreshStatus()" title="Aggiorna stato">⟳</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab active" data-tab="sticker" onclick="switchTab('sticker')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+      Sticker
+    </button>
+    <button class="tab" data-tab="pair" onclick="switchTab('pair')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7zM13 7h4v4h-4zM7 13h4v4H7z"/></svg>
+      Pair
+    </button>
+    <button class="tab" data-tab="settings" onclick="switchTab('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      Config
+    </button>
+  </div>
+
+  <!-- Panels -->
+  <div class="panels">
+
+    <!-- STICKER PANEL -->
+    <div class="panel active" id="panel-sticker">
+
+      <!-- Destinatario -->
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Destinatario
+        </div>
+        <div class="field">
+          <label>Numero / JID</label>
+          <input type="text" id="recipientJid" class="mono" placeholder="393331234567 oppure 393331234567@s.whatsapp.net" autocomplete="off">
+          <div class="hint">Inserisci numero con prefisso internazionale oppure JID completo. Per gruppi usa JID del gruppo.</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline btn-sm" onclick="loadContacts()">📋 Contatti</button>
+          <button class="btn btn-outline btn-sm" onclick="loadGroups()">👥 Gruppi</button>
+        </div>
+        <div id="contactListContainer" style="display:none;margin-top:12px">
+          <div class="contact-list" id="contactList">
+            <div class="contact-search"><input type="text" id="contactSearch" placeholder="Cerca..." oninput="filterContacts()"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Immagine -->
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          Immagine
+        </div>
+
+        <div class="dropzone" id="dropzone">
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onchange="handleFile(this.files[0])">
+          <div class="dropzone-icon">📎</div>
+          <div class="dropzone-text">
+            <strong>Trascina, incolla o tocca</strong>
+            JPG, PNG, WebP, GIF (anche animate)
+          </div>
+        </div>
+
+        <div class="url-row">
+          <input type="text" id="imageUrl" placeholder="https://... URL immagine" class="mono">
+          <button class="btn btn-outline btn-sm" onclick="loadFromUrl()">Carica</button>
+        </div>
+
+        <div class="preview" id="previewArea" style="display:none">
+          <button class="preview-clear" onclick="clearPreview()">×</button>
+          <img id="previewImg" alt="Preview">
+          <div class="preview-info" id="previewInfo"></div>
+        </div>
+      </div>
+
+      <!-- Invia -->
+      <button class="btn btn-primary" id="sendBtn" onclick="sendSticker()" disabled>
+        🚀 Invia Sticker
+      </button>
+
+      <div id="sendResult" style="margin-top:16px"></div>
+    </div>
+
+    <!-- PAIR PANEL -->
+    <div class="panel" id="panel-pair">
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4H7zM13 7h4v4h-4zM7 13h4v4H7z"/></svg>
+          Associazione WhatsApp
+        </div>
+        <p style="font-size:13px;color:var(--tx2);line-height:1.6;margin-bottom:16px">
+          Scansiona il QR code con WhatsApp per collegare il tuo dispositivo al backend.
+          <br>WhatsApp → Impostazioni → Dispositivi collegati → Collega dispositivo
+        </p>
+        <button class="btn btn-primary" onclick="requestQR()">📱 Genera QR Code</button>
+        <div class="qr-container" id="qrContainer" style="display:none"></div>
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn btn-outline btn-sm" onclick="refreshStatus()">🔄 Verifica stato</button>
+          <button class="btn btn-danger btn-sm" onclick="doLogout()">🚪 Disconnetti</button>
+        </div>
+        <div id="pairStatus" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">ℹ️ Info connessione</div>
+        <div id="connectionInfo" style="font-size:13px;color:var(--tx2)">Clicca "Verifica stato" per controllare</div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PANEL -->
+    <div class="panel" id="panel-settings">
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Backend API
+        </div>
+        <div class="field">
+          <label>URL Backend (go-whatsapp-web-multidevice)</label>
+          <input type="url" id="cfgBackendUrl" class="mono" placeholder="http://192.168.1.1:3000">
+          <div class="hint">L'indirizzo del tuo router OpenWrt con il backend Go in esecuzione</div>
+        </div>
+        <div class="field">
+          <label>Cloudflare Worker Proxy (opzionale)</label>
+          <input type="url" id="cfgProxyUrl" class="mono" placeholder="https://mediavault.lucatarik.workers.dev/?url=">
+          <div class="hint">Se la PWA è su HTTPS e il backend su HTTP, usa il proxy CF per evitare problemi mixed-content. Lascia vuoto per chiamate dirette (es. se sei in LAN).</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔧 Opzioni Sticker</div>
+        <div class="field">
+          <label>Pack Name</label>
+          <input type="text" id="cfgPackName" value="MyStickerPack">
+        </div>
+        <div class="field">
+          <label>Author</label>
+          <input type="text" id="cfgAuthor" value="StickerSender">
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="saveConfig()" style="margin-bottom:12px">💾 Salva Configurazione</button>
+
+      <div class="card">
+        <div class="card-title">📊 Storage</div>
+        <div class="field">
+          <button class="btn btn-danger btn-sm" onclick="clearStorage()">🗑 Cancella tutti i dati locali</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Config & State ───
+const DB_NAME = 'StickerSenderDB';
+const DB_VER = 1;
+const STORE = 'config';
+
+let db = null;
+let currentImage = null; // {blob, type, name, width, height, animated}
+let contacts = [];
+let groups = [];
+
+// ─── IndexedDB ───
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+function dbGet(key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbSet(key, val) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const req = tx.objectStore(STORE).put(val, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// ─── Config ───
+async function loadConfig() {
+  try {
+    await openDB();
+    const cfg = await dbGet('config') || {};
+    document.getElementById('cfgBackendUrl').value = cfg.backendUrl || '';
+    document.getElementById('cfgProxyUrl').value = cfg.proxyUrl || '';
+    document.getElementById('cfgPackName').value = cfg.packName || 'MyStickerPack';
+    document.getElementById('cfgAuthor').value = cfg.author || 'StickerSender';
+  } catch(e) {
+    console.warn('Config load failed:', e);
+  }
+}
+
+async function saveConfig() {
+  const cfg = {
+    backendUrl: document.getElementById('cfgBackendUrl').value.replace(/\/+$/, ''),
+    proxyUrl: document.getElementById('cfgProxyUrl').value.replace(/\/+$/, ''),
+    packName: document.getElementById('cfgPackName').value,
+    author: document.getElementById('cfgAuthor').value,
+  };
+  await dbSet('config', cfg);
+  toast('Configurazione salvata!', 'ok');
+}
+
+async function getConfig() {
+  try {
+    return await dbGet('config') || {};
+  } catch { return {}; }
+}
+
+function clearStorage() {
+  if (confirm('Cancellare tutti i dati salvati?')) {
+    indexedDB.deleteDatabase(DB_NAME);
+    toast('Dati cancellati', 'ok');
+    setTimeout(() => location.reload(), 500);
+  }
+}
+
+// ─── API Helper ───
+async function apiCall(endpoint, method = 'GET', body = null, isFormData = false) {
+  const cfg = await getConfig();
+  if (!cfg.backendUrl) {
+    toast('Configura prima l\'URL del backend!', 'er');
+    switchTab('settings');
+    throw new Error('No backend URL');
+  }
+
+  let url = cfg.backendUrl + endpoint;
+
+  // Use CF Worker proxy if configured
+  if (cfg.proxyUrl) {
+    url = cfg.proxyUrl + encodeURIComponent(url);
+  }
+
+  const opts = { method, mode: 'cors' };
+  if (body) {
+    if (isFormData) {
+      opts.body = body;
+    } else {
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify(body);
+    }
+  }
+
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`API ${res.status}: ${txt}`);
+  }
+
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('json')) return res.json();
+  if (ct.includes('image')) return res.blob();
+  return res.text();
+}
+
+// ─── Tabs ───
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => {
+    const isActive = p.id === `panel-${name}`;
+    p.classList.toggle('active', isActive);
+  });
+}
+
+// ─── Toast ───
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ─── Status ───
+async function refreshStatus() {
+  const dot = document.getElementById('statusDot');
+  const info = document.getElementById('connectionInfo');
+  try {
+    const data = await apiCall('/user/info');
+    dot.classList.add('online');
+    dot.title = 'Connesso';
+    const name = data?.data?.name || data?.results?.name || 'Connesso';
+    const phone = data?.data?.phone || data?.results?.phone || '';
+    info.innerHTML = `<span class="badge badge-ok">✓ Connesso</span><br><br>Nome: <strong>${name}</strong>${phone ? '<br>Telefono: <strong>'+phone+'</strong>' : ''}`;
+    document.getElementById('pairStatus').innerHTML = '<span class="badge badge-ok">✓ Dispositivo associato</span>';
+    return true;
+  } catch(e) {
+    dot.classList.remove('online');
+    dot.title = 'Disconnesso';
+    info.innerHTML = `<span class="badge badge-er">✗ Non connesso</span><br><br><span style="font-size:12px;color:var(--tx3)">${e.message}</span>`;
+    return false;
+  }
+}
+
+// ─── QR Code ───
+async function requestQR() {
+  const container = document.getElementById('qrContainer');
+  container.style.display = 'block';
+  container.innerHTML = '<div class="spinner"></div><p>Generazione QR code...</p>';
+  try {
+    // The API returns QR as base64 image or HTML
+    const data = await apiCall('/app/login');
+
+    if (data?.code === 'QR_RECEIVED' || data?.results?.qr_link) {
+      const qrImg = data.results?.qr_link || data.results?.qr_image;
+      if (qrImg) {
+        container.innerHTML = `<img src="${qrImg}" alt="QR Code"><p>Scansiona con WhatsApp entro 60 secondi</p>`;
+      } else if (data.results?.qr_duration) {
+        container.innerHTML = `<p>QR code generato. Controlla il terminale del backend.</p>`;
+      }
+    } else if (data?.code === 'ALREADY_LOGGED_IN' || data?.results?.already_logged_in) {
+      container.innerHTML = '<span class="badge badge-ok">✓ Già connesso!</span>';
+      refreshStatus();
+    } else {
+      // Try to display whatever we got
+      container.innerHTML = `<pre style="font-size:11px;color:var(--tx2);text-align:left;overflow:auto">${JSON.stringify(data, null, 2)}</pre>`;
+    }
+  } catch(e) {
+    container.innerHTML = `<span class="badge badge-er">Errore: ${e.message}</span>`;
+  }
+}
+
+async function doLogout() {
+  if (!confirm('Disconnettere il dispositivo WhatsApp?')) return;
+  try {
+    await apiCall('/app/logout', 'POST');
+    toast('Disconnesso', 'ok');
+    refreshStatus();
+  } catch(e) {
+    toast('Errore logout: ' + e.message, 'er');
+  }
+}
+
+// ─── Contacts / Groups ───
+async function loadContacts() {
+  const container = document.getElementById('contactListContainer');
+  const list = document.getElementById('contactList');
+  container.style.display = 'block';
+  list.innerHTML = '<div class="contact-search"><input type="text" id="contactSearch" placeholder="Cerca..." oninput="filterContacts()"></div><div style="padding:20px;text-align:center"><div class="spinner"></div></div>';
+
+  try {
+    const data = await apiCall('/user/my/contacts');
+    contacts = data?.results || data?.data || [];
+    if (!Array.isArray(contacts)) contacts = Object.values(contacts);
+    renderContacts(contacts, false);
+  } catch(e) {
+    list.innerHTML += `<div style="padding:12px;color:var(--er);font-size:12px">Errore: ${e.message}</div>`;
+  }
+}
+
+async function loadGroups() {
+  const container = document.getElementById('contactListContainer');
+  const list = document.getElementById('contactList');
+  container.style.display = 'block';
+  list.innerHTML = '<div class="contact-search"><input type="text" id="contactSearch" placeholder="Cerca..." oninput="filterContacts()"></div><div style="padding:20px;text-align:center"><div class="spinner"></div></div>';
+
+  try {
+    const data = await apiCall('/user/my/groups');
+    groups = data?.results || data?.data || [];
+    if (!Array.isArray(groups)) groups = Object.values(groups);
+    renderContacts(groups, true);
+  } catch(e) {
+    list.innerHTML += `<div style="padding:12px;color:var(--er);font-size:12px">Errore: ${e.message}</div>`;
+  }
+}
+
+function renderContacts(items, isGroup) {
+  const list = document.getElementById('contactList');
+  list.innerHTML = '<div class="contact-search"><input type="text" id="contactSearch" placeholder="Cerca..." oninput="filterContacts()"></div>';
+
+  items.forEach(c => {
+    const jid = c.jid || c.JID || c.id || '';
+    const name = c.name || c.Name || c.push_name || c.subject || c.GroupName || jid.split('@')[0];
+    const div = document.createElement('div');
+    div.className = 'contact-item';
+    div.dataset.jid = jid;
+    div.dataset.name = name.toLowerCase();
+    div.innerHTML = `
+      <div class="contact-avatar">${isGroup ? '👥' : name[0]?.toUpperCase() || '?'}</div>
+      <div style="flex:1;overflow:hidden">
+        <div class="contact-name">${name}</div>
+        <div class="contact-jid">${jid}</div>
+      </div>`;
+    div.onclick = () => {
+      document.getElementById('recipientJid').value = jid;
+      document.querySelectorAll('.contact-item').forEach(i => i.classList.remove('selected'));
+      div.classList.add('selected');
+      toast(`Selezionato: ${name}`, 'ok');
+    };
+    list.appendChild(div);
+  });
+
+  if (items.length === 0) {
+    list.innerHTML += '<div style="padding:20px;text-align:center;color:var(--tx3)">Nessun risultato</div>';
+  }
+}
+
+function filterContacts() {
+  const q = document.getElementById('contactSearch')?.value.toLowerCase() || '';
+  document.querySelectorAll('.contact-item').forEach(el => {
+    el.style.display = (el.dataset.name?.includes(q) || el.dataset.jid?.includes(q)) ? '' : 'none';
+  });
+}
+
+// ─── Image Processing ───
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) return toast('File non valido', 'er');
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const isGif = file.type === 'image/gif';
+    processImage(e.target.result, file.type, file.name, isGif);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function loadFromUrl() {
+  const urlInput = document.getElementById('imageUrl');
+  let imgUrl = urlInput.value.trim();
+  if (!imgUrl) return toast('Inserisci un URL', 'wr');
+
+  // Use CF proxy if available for loading external images
+  const cfg = await getConfig();
+  let fetchUrl = imgUrl;
+  if (cfg.proxyUrl) {
+    fetchUrl = cfg.proxyUrl + encodeURIComponent(imgUrl);
+  }
+
+  toast('Caricamento...', 'wr');
+  try {
+    const res = await fetch(fetchUrl);
+    const blob = await res.blob();
+    const dataUrl = await blobToDataUrl(blob);
+    const isGif = blob.type === 'image/gif' || imgUrl.toLowerCase().includes('.gif');
+    processImage(dataUrl, blob.type, imgUrl.split('/').pop() || 'image', isGif);
+    toast('Immagine caricata!', 'ok');
+  } catch(e) {
+    toast('Errore caricamento: ' + e.message, 'er');
+  }
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+
+function processImage(dataUrl, mimeType, name, animated = false) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    // For animated GIFs, keep original and send to backend for conversion
+    if (animated) {
+      fetch(dataUrl)
+        .then(r => r.blob())
+        .then(blob => {
+          currentImage = {
+            blob: blob,
+            type: 'image/gif',
+            name: name,
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+            animated: true,
+            dataUrl: dataUrl
+          };
+          showPreview(dataUrl, `GIF animata · ${img.naturalWidth}×${img.naturalHeight} · ${formatBytes(blob.size)}`);
+          updateSendBtn();
+        });
+      return;
+    }
+
+    // Static image: resize to 512×512 and convert to WebP
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    // Transparent background for PNG
+    if (mimeType === 'image/png') {
+      ctx.clearRect(0, 0, 512, 512);
+    } else {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, 512, 512);
+    }
+
+    // Fit image maintaining aspect ratio, centered
+    const scale = Math.min(512 / img.naturalWidth, 512 / img.naturalHeight);
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    const x = (512 - w) / 2;
+    const y = (512 - h) / 2;
+
+    ctx.drawImage(img, x, y, w, h);
+
+    canvas.toBlob(blob => {
+      if (!blob) return toast('Errore conversione', 'er');
+
+      const previewUrl = canvas.toDataURL('image/webp', 0.9);
+      currentImage = {
+        blob: blob,
+        type: 'image/webp',
+        name: name.replace(/\.[^.]+$/, '.webp'),
+        width: 512,
+        height: 512,
+        animated: false,
+        dataUrl: previewUrl
+      };
+
+      showPreview(previewUrl, `WebP 512×512 · ${formatBytes(blob.size)}`);
+      updateSendBtn();
+    }, 'image/webp', 0.9);
+  };
+  img.onerror = () => toast('Errore caricamento immagine', 'er');
+  img.src = dataUrl;
+}
+
+function showPreview(src, info) {
+  const area = document.getElementById('previewArea');
+  const img = document.getElementById('previewImg');
+  const infoEl = document.getElementById('previewInfo');
+  area.style.display = 'block';
+  img.src = src;
+  infoEl.textContent = info;
+}
+
+function clearPreview() {
+  document.getElementById('previewArea').style.display = 'none';
+  document.getElementById('previewImg').src = '';
+  currentImage = null;
+  updateSendBtn();
+}
+
+function updateSendBtn() {
+  document.getElementById('sendBtn').disabled = !currentImage;
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+// ─── Send Sticker ───
+async function sendSticker() {
+  if (!currentImage) return toast('Nessuna immagine selezionata', 'er');
+
+  const jid = document.getElementById('recipientJid').value.trim();
+  if (!jid) return toast('Inserisci un destinatario', 'er');
+
+  // Normalize JID
+  const phone = jid.includes('@') ? jid : jid.replace(/\D/g, '') + '@s.whatsapp.net';
+
+  const cfg = await getConfig();
+  const btn = document.getElementById('sendBtn');
+  const result = document.getElementById('sendResult');
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Invio in corso...';
+
+  try {
+    const formData = new FormData();
+    formData.append('phone', phone);
+    formData.append('image', currentImage.blob, currentImage.name);
+    formData.append('sticker', 'true');
+    formData.append('is_animated', currentImage.animated ? 'true' : 'false');
+
+    if (cfg.packName) formData.append('pack_name', cfg.packName);
+    if (cfg.author) formData.append('author', cfg.author);
+
+    // Try /send/message/sticker endpoint first (some versions of the API)
+    let data;
+    try {
+      data = await apiCall('/send/image/sticker', 'POST', formData, true);
+    } catch {
+      // Fallback to /send/image with sticker flag
+      try {
+        data = await apiCall('/send/image', 'POST', formData, true);
+      } catch {
+        // Try another common endpoint pattern
+        data = await apiCall('/send/sticker', 'POST', formData, true);
+      }
+    }
+
+    result.innerHTML = '<div class="sent-ok animate-in"><div class="checkmark">✅</div><p>Sticker inviato con successo!</p></div>';
+    toast('Sticker inviato! 🎉', 'ok');
+
+    // Clear after success
+    setTimeout(() => {
+      clearPreview();
+      result.innerHTML = '';
+    }, 3000);
+
+  } catch(e) {
+    result.innerHTML = `<div class="card" style="border-color:var(--er)"><span class="badge badge-er">Errore invio</span><br><br><span style="font-size:12px;color:var(--tx3)">${e.message}</span></div>`;
+    toast('Errore invio sticker', 'er');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🚀 Invia Sticker';
+    updateSendBtn();
+  }
+}
+
+// ─── Drag & Drop, Paste ───
+const dropzone = document.getElementById('dropzone');
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+
+document.addEventListener('paste', e => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      handleFile(item.getAsFile());
+      return;
+    }
+  }
+});
+
+// ─── Init ───
+async function init() {
+  await loadConfig();
+  refreshStatus().catch(() => {});
+}
+
+// SW Registration
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+init();
+</script>
+</body>
+</html>
